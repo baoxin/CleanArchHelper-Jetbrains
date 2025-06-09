@@ -1,0 +1,85 @@
+<!-- Plugin Configuration File. Read more: https://plugins.jetbrains.com/docs/intellij/plugin-configuration-file.html -->
+<idea-plugin>
+    <!-- Unique identifier of the plugin. It should be FQN. It cannot be changed between the plugin versions. -->
+    <id>com.baoxin.CleanArchHelper</id>
+
+    <!-- Public plugin name should be written in Title Case.
+         Guidelines: https://plugins.jetbrains.com/docs/marketplace/plugin-overview-page.html#plugin-name -->
+    <name>Clean Architecture Helper</name>
+
+    <!-- A displayed Vendor name or Organization ID displayed on the Plugins Page. -->
+    <vendor url="https://github.com/baoxin">Baoxin</vendor>
+
+    <!-- Description of the plugin displayed on the Plugin Page and IDE Plugin Manager.
+         Guidelines: https://plugins.jetbrains.com/docs/marketplace/plugin-overview-page.html#plugin-description -->
+    <description><![CDATA[
+    一个用于快速创建 Clean Architecture 目录结构的 JetBrains 插件，支持 Flutter、React、Node.js 等项目。<br>
+    <br>
+    <strong>功能特性：</strong><br>
+    • 🏗️ 快速创建完整的 Clean Architecture 基础目录结构<br>
+    • 🎯 为每个功能模块快速创建标准的三层架构目录<br>
+    • ⚙️ 完全可自定义的目录结构配置<br>
+    • 📁 支持多层级嵌套目录<br>
+    • 🔧 可以保存和重置配置<br>
+    <br>
+    支持通过右键菜单或命令面板快速创建标准的 Clean Architecture 项目结构。
+  ]]></description>
+
+    <!-- Product and plugin compatibility requirements.
+         Read more: https://plugins.jetbrains.com/docs/intellij/plugin-compatibility.html -->
+    <depends>com.intellij.modules.platform</depends>
+
+    <!-- Extension points defined by the plugin.
+         Read more: https://plugins.jetbrains.com/docs/intellij/plugin-extension-points.html -->
+    <extensions defaultExtensionNs="com.intellij">
+        <!-- Application settings -->
+        <applicationConfigurable 
+            parentId="tools" 
+            instance="com.baoxin.cleanarchhelper.settings.CleanArchConfigurable"
+            id="com.baoxin.cleanarchhelper.settings.CleanArchConfigurable"
+            displayName="Clean Architecture Helper"/>
+            
+        <!-- Application service -->
+        <applicationService 
+            serviceImplementation="com.baoxin.cleanarchhelper.services.StructureConfigService"/>
+    </extensions>
+
+    <actions>
+        <!-- Main action group -->
+        <group id="CleanArchHelper.MainGroup" text="Clean Architecture" description="Clean Architecture Helper Actions">
+            <add-to-group group-id="ProjectViewPopupMenu" anchor="after" relative-to-action="NewGroup"/>
+            
+            <!-- Create base structure action -->
+            <action id="CleanArchHelper.CreateBaseStructure" 
+                    class="com.baoxin.cleanarchhelper.actions.CreateBaseStructureAction" 
+                    text="创建 Clean Architecture 基础结构" 
+                    description="创建完整的 Clean Architecture 基础目录结构">
+                <keyboard-shortcut keymap="$default" first-keystroke="ctrl alt B"/>
+            </action>
+            
+            <!-- Create feature action -->
+            <action id="CleanArchHelper.CreateFeature" 
+                    class="com.baoxin.cleanarchhelper.actions.CreateFeatureAction" 
+                    text="创建 Feature 模块" 
+                    description="创建标准的三层架构 Feature 模块">
+                <keyboard-shortcut keymap="$default" first-keystroke="ctrl alt F"/>
+            </action>
+            
+            <!-- Configure structure action -->
+            <action id="CleanArchHelper.ConfigureStructure" 
+                    class="com.baoxin.cleanarchhelper.actions.ConfigureStructureAction" 
+                    text="配置目录结构" 
+                    description="配置 Clean Architecture 目录结构">
+            </action>
+        </group>
+        
+        <!-- Tools menu actions -->
+        <group id="CleanArchHelper.ToolsGroup" text="Clean Architecture" description="Clean Architecture Helper">
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
+            
+            <reference ref="CleanArchHelper.CreateBaseStructure"/>
+            <reference ref="CleanArchHelper.CreateFeature"/>
+            <reference ref="CleanArchHelper.ConfigureStructure"/>
+        </group>
+    </actions>
+</idea-plugin>
