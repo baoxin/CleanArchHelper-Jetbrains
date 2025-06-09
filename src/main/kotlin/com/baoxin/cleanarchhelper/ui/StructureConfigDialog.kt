@@ -3,6 +3,7 @@ package com.baoxin.cleanarchhelper.ui
 import com.baoxin.cleanarchhelper.config.DefaultStructures
 import com.baoxin.cleanarchhelper.model.DirectoryStructure
 import com.baoxin.cleanarchhelper.services.StructureConfigService
+import com.baoxin.cleanarchhelper.utils.JsonFormatter
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.DialogWrapper
 import com.intellij.openapi.ui.Messages
@@ -93,7 +94,7 @@ class StructureConfigDialog(private val project: Project) : DialogWrapper(projec
             )
             if (result == Messages.YES) {
                 val defaultStructure = DefaultStructures.getDefaultBaseStructure()
-                baseStructureTextArea.text = formatJson(defaultStructure.toJson())
+                baseStructureTextArea.text = JsonFormatter.formatJson(defaultStructure.toJson())
             }
         }
         
@@ -107,7 +108,7 @@ class StructureConfigDialog(private val project: Project) : DialogWrapper(projec
             )
             if (result == Messages.YES) {
                 val defaultStructure = DefaultStructures.getDefaultFeatureStructure()
-                featureStructureTextArea.text = formatJson(defaultStructure.toJson())
+                featureStructureTextArea.text = JsonFormatter.formatJson(defaultStructure.toJson())
             }
         }
         
@@ -115,34 +116,51 @@ class StructureConfigDialog(private val project: Project) : DialogWrapper(projec
         previewButton.addActionListener {
             previewCurrentStructure()
         }
-        
+
+        val formatButton = JButton("格式化 JSON")
+        formatButton.addActionListener {
+            formatCurrentJson()
+        }
+
         panel.add(resetBaseButton)
         panel.add(resetFeatureButton)
         panel.add(previewButton)
-        
+        panel.add(formatButton)
+
         return panel
     }
     
     private fun loadCurrentConfiguration() {
         val baseStructure = configService.getBaseStructure()
         val featureStructure = configService.getFeatureStructure()
-        
-        baseStructureTextArea.text = formatJson(baseStructure.toJson())
-        featureStructureTextArea.text = formatJson(featureStructure.toJson())
+
+        baseStructureTextArea.text = JsonFormatter.formatJson(baseStructure.toJson())
+        featureStructureTextArea.text = JsonFormatter.formatJson(featureStructure.toJson())
     }
     
     private fun previewCurrentStructure() {
+        val currentTab = tabbedPane.selectedIndex
+        val jsonText = if (currentTab == 0) {
+            baseStructureTextArea.text
+        } else {
+            featureStructureTextArea.text
+        }
+
+        if (!JsonFormatter.isValidJson(jsonText)) {
+            val error = JsonFormatter.getJsonError(jsonText)
+            Messages.showErrorDialog(
+                project,
+                "JSON 格式错误：\n$error",
+                "配置错误"
+            )
+            return
+        }
+
         try {
-            val currentTab = tabbedPane.selectedIndex
-            val structure = if (currentTab == 0) {
-                DirectoryStructure.fromJson(baseStructureTextArea.text)
-            } else {
-                DirectoryStructure.fromJson(featureStructureTextArea.text)
-            }
-            
+            val structure = DirectoryStructure.fromJson(jsonText)
             val preview = structure.getAllPaths().joinToString("\n")
             val structureType = if (currentTab == 0) "基础结构" else "Feature 结构"
-            
+
             Messages.showInfoMessage(
                 project,
                 "当前 $structureType 预览：\n\n$preview",
@@ -158,36 +176,78 @@ class StructureConfigDialog(private val project: Project) : DialogWrapper(projec
     }
     
     override fun doOKAction() {
+        val baseJsonText = baseStructureTextArea.text
+        val featureJsonText = featureStructureTextArea.text
+
+        // 验证 JSON 格式
+        if (!JsonFormatter.isValidJson(baseJsonText)) {
+            val error = JsonFormatter.getJsonError(baseJsonText)
+            Messages.showErrorDialog(
+                project,
+                "基础结构配置 JSON 格式错误：\n$error",
+                "保存失败"
+            )
+            return
+        }
+
+        if (!JsonFormatter.isValidJson(featureJsonText)) {
+            val error = JsonFormatter.getJsonError(featureJsonText)
+            Messages.showErrorDialog(
+                project,
+                "Feature 结构配置 JSON 格式错误：\n$error",
+                "保存失败"
+            )
+            return
+        }
+
         try {
             // 验证并保存基础结构配置
-            val baseStructure = DirectoryStructure.fromJson(baseStructureTextArea.text)
+            val baseStructure = DirectoryStructure.fromJson(baseJsonText)
             configService.setBaseStructure(baseStructure)
-            
+
             // 验证并保存 Feature 结构配置
-            val featureStructure = DirectoryStructure.fromJson(featureStructureTextArea.text)
+            val featureStructure = DirectoryStructure.fromJson(featureJsonText)
             configService.setFeatureStructure(featureStructure)
-            
+
             Messages.showInfoMessage(
                 project,
                 "配置已保存成功！",
                 "保存成功"
             )
-            
+
             super.doOKAction()
         } catch (e: Exception) {
             Messages.showErrorDialog(
                 project,
-                "保存配置时发生错误：\n${e.message}\n\n请检查 JSON 格式是否正确。",
+                "保存配置时发生错误：\n${e.message}",
                 "保存失败"
             )
         }
     }
-    
-    private fun formatJson(json: String): String {
-        // 简单的 JSON 格式化
-        return json.replace(",", ",\n")
-            .replace("{", "{\n")
-            .replace("}", "\n}")
-            .replace("\":", "\": ")
+
+    private fun formatCurrentJson() {
+        val currentTab = tabbedPane.selectedIndex
+        val textArea = if (currentTab == 0) {
+            baseStructureTextArea
+        } else {
+            featureStructureTextArea
+        }
+
+        val jsonText = textArea.text
+        if (JsonFormatter.isValidJson(jsonText)) {
+            textArea.text = JsonFormatter.formatJson(jsonText)
+            Messages.showInfoMessage(
+                project,
+                "JSON 格式化完成！",
+                "格式化成功"
+            )
+        } else {
+            val error = JsonFormatter.getJsonError(jsonText)
+            Messages.showErrorDialog(
+                project,
+                "无法格式化，JSON 格式错误：\n$error",
+                "格式化失败"
+            )
+        }
     }
 }

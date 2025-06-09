@@ -3,6 +3,7 @@ package com.baoxin.cleanarchhelper.settings
 import com.baoxin.cleanarchhelper.config.DefaultStructures
 import com.baoxin.cleanarchhelper.model.DirectoryStructure
 import com.baoxin.cleanarchhelper.services.StructureConfigService
+import com.baoxin.cleanarchhelper.utils.JsonFormatter
 import com.intellij.openapi.options.Configurable
 import com.intellij.openapi.ui.Messages
 import com.intellij.ui.components.JBLabel
@@ -98,14 +99,24 @@ class CleanArchConfigurable : Configurable {
             )
             if (result == Messages.YES) {
                 val defaultStructure = DefaultStructures.getDefaultBaseStructure()
-                baseStructureTextArea?.text = formatJson(defaultStructure.toJson())
+                baseStructureTextArea?.text = JsonFormatter.formatJson(defaultStructure.toJson())
             }
         }
         
         val previewButton = JButton("预览结构")
         previewButton.addActionListener {
+            val jsonText = baseStructureTextArea?.text ?: ""
+            if (!JsonFormatter.isValidJson(jsonText)) {
+                val error = JsonFormatter.getJsonError(jsonText)
+                Messages.showErrorDialog(
+                    "JSON 格式错误：\n$error",
+                    "配置错误"
+                )
+                return@addActionListener
+            }
+
             try {
-                val structure = DirectoryStructure.fromJson(baseStructureTextArea?.text ?: "")
+                val structure = DirectoryStructure.fromJson(jsonText)
                 val preview = structure.getAllPaths().joinToString("\n")
                 Messages.showInfoMessage(
                     "基础结构预览：\n\n$preview",
@@ -118,10 +129,25 @@ class CleanArchConfigurable : Configurable {
                 )
             }
         }
+
+        val formatButton = JButton("格式化 JSON")
+        formatButton.addActionListener {
+            val jsonText = baseStructureTextArea?.text ?: ""
+            if (JsonFormatter.isValidJson(jsonText)) {
+                baseStructureTextArea?.text = JsonFormatter.formatJson(jsonText)
+            } else {
+                val error = JsonFormatter.getJsonError(jsonText)
+                Messages.showErrorDialog(
+                    "无法格式化，JSON 格式错误：\n$error",
+                    "格式化失败"
+                )
+            }
+        }
         
         panel.add(resetButton)
         panel.add(previewButton)
-        
+        panel.add(formatButton)
+
         return panel
     }
     
@@ -137,14 +163,24 @@ class CleanArchConfigurable : Configurable {
             )
             if (result == Messages.YES) {
                 val defaultStructure = DefaultStructures.getDefaultFeatureStructure()
-                featureStructureTextArea?.text = formatJson(defaultStructure.toJson())
+                featureStructureTextArea?.text = JsonFormatter.formatJson(defaultStructure.toJson())
             }
         }
         
         val previewButton = JButton("预览结构")
         previewButton.addActionListener {
+            val jsonText = featureStructureTextArea?.text ?: ""
+            if (!JsonFormatter.isValidJson(jsonText)) {
+                val error = JsonFormatter.getJsonError(jsonText)
+                Messages.showErrorDialog(
+                    "JSON 格式错误：\n$error",
+                    "配置错误"
+                )
+                return@addActionListener
+            }
+
             try {
-                val structure = DirectoryStructure.fromJson(featureStructureTextArea?.text ?: "")
+                val structure = DirectoryStructure.fromJson(jsonText)
                 val preview = structure.getAllPaths().joinToString("\n")
                 Messages.showInfoMessage(
                     "Feature 结构预览：\n\n$preview",
@@ -157,10 +193,25 @@ class CleanArchConfigurable : Configurable {
                 )
             }
         }
-        
+
+        val formatFeatureButton = JButton("格式化 JSON")
+        formatFeatureButton.addActionListener {
+            val jsonText = featureStructureTextArea?.text ?: ""
+            if (JsonFormatter.isValidJson(jsonText)) {
+                featureStructureTextArea?.text = JsonFormatter.formatJson(jsonText)
+            } else {
+                val error = JsonFormatter.getJsonError(jsonText)
+                Messages.showErrorDialog(
+                    "无法格式化，JSON 格式错误：\n$error",
+                    "格式化失败"
+                )
+            }
+        }
+
         panel.add(resetButton)
         panel.add(previewButton)
-        
+        panel.add(formatFeatureButton)
+
         return panel
     }
     
@@ -221,25 +272,47 @@ class CleanArchConfigurable : Configurable {
         val currentBaseStructure = configService.getBaseStructure()
         val currentFeatureStructure = configService.getFeatureStructure()
         
-        val baseModified = baseStructureTextArea?.text != formatJson(currentBaseStructure.toJson())
-        val featureModified = featureStructureTextArea?.text != formatJson(currentFeatureStructure.toJson())
+        val baseModified = baseStructureTextArea?.text != JsonFormatter.formatJson(currentBaseStructure.toJson())
+        val featureModified = featureStructureTextArea?.text != JsonFormatter.formatJson(currentFeatureStructure.toJson())
         
         return baseModified || featureModified
     }
     
     override fun apply() {
+        val baseJsonText = baseStructureTextArea?.text ?: ""
+        val featureJsonText = featureStructureTextArea?.text ?: ""
+
+        // 验证 JSON 格式
+        if (!JsonFormatter.isValidJson(baseJsonText)) {
+            val error = JsonFormatter.getJsonError(baseJsonText)
+            Messages.showErrorDialog(
+                "基础结构配置 JSON 格式错误：\n$error",
+                "保存失败"
+            )
+            throw IllegalArgumentException("Invalid base structure JSON")
+        }
+
+        if (!JsonFormatter.isValidJson(featureJsonText)) {
+            val error = JsonFormatter.getJsonError(featureJsonText)
+            Messages.showErrorDialog(
+                "Feature 结构配置 JSON 格式错误：\n$error",
+                "保存失败"
+            )
+            throw IllegalArgumentException("Invalid feature structure JSON")
+        }
+
         try {
             // 保存基础结构配置
-            val baseStructure = DirectoryStructure.fromJson(baseStructureTextArea?.text ?: "")
+            val baseStructure = DirectoryStructure.fromJson(baseJsonText)
             configService.setBaseStructure(baseStructure)
-            
+
             // 保存 Feature 结构配置
-            val featureStructure = DirectoryStructure.fromJson(featureStructureTextArea?.text ?: "")
+            val featureStructure = DirectoryStructure.fromJson(featureJsonText)
             configService.setFeatureStructure(featureStructure)
-            
+
         } catch (e: Exception) {
             Messages.showErrorDialog(
-                "保存配置时发生错误：\n${e.message}\n\n请检查 JSON 格式是否正确。",
+                "保存配置时发生错误：\n${e.message}",
                 "保存失败"
             )
             throw e
@@ -249,16 +322,8 @@ class CleanArchConfigurable : Configurable {
     override fun reset() {
         val baseStructure = configService.getBaseStructure()
         val featureStructure = configService.getFeatureStructure()
-        
-        baseStructureTextArea?.text = formatJson(baseStructure.toJson())
-        featureStructureTextArea?.text = formatJson(featureStructure.toJson())
-    }
-    
-    private fun formatJson(json: String): String {
-        // 简单的 JSON 格式化
-        return json.replace(",", ",\n")
-            .replace("{", "{\n")
-            .replace("}", "\n}")
-            .replace("\":", "\": ")
+
+        baseStructureTextArea?.text = JsonFormatter.formatJson(baseStructure.toJson())
+        featureStructureTextArea?.text = JsonFormatter.formatJson(featureStructure.toJson())
     }
 }

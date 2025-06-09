@@ -5,7 +5,7 @@
 
     <!-- Public plugin name should be written in Title Case.
          Guidelines: https://plugins.jetbrains.com/docs/marketplace/plugin-overview-page.html#plugin-name -->
-    <name>Clean Architecture Helper</name>
+    <name>Clean Architecture Folders Helper</name>
 
     <!-- A displayed Vendor name or Organization ID displayed on the Plugins Page. -->
     <vendor url="https://github.com/baoxin">Baoxin</vendor>
@@ -13,6 +13,8 @@
     <!-- Description of the plugin displayed on the Plugin Page and IDE Plugin Manager.
          Guidelines: https://plugins.jetbrains.com/docs/marketplace/plugin-overview-page.html#plugin-description -->
     <description><![CDATA[
+    A JetBrains plug-in for quickly creating Clean Architecture directory structures, supporting projects such as Flutter, React, Node.js.
+
     一个用于快速创建 Clean Architecture 目录结构的 JetBrains 插件，支持 Flutter、React、Node.js 等项目。<br>
     <br>
     <strong>功能特性：</strong><br>
