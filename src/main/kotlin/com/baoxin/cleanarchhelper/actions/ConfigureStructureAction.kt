@@ -18,7 +18,9 @@ class ConfigureStructureAction : AnAction() {
     }
     
     override fun update(e: AnActionEvent) {
-        // 只有在项目存在时才启用
-        e.presentation.isEnabledAndVisible = e.project != null
+        // 只有在项目存在时才启用和显示
+        val project = e.project
+        e.presentation.isVisible = project != null
+        e.presentation.isEnabled = project != null
     }
 }

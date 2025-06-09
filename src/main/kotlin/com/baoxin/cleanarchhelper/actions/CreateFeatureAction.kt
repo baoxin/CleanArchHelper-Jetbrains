@@ -11,6 +11,7 @@ import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.progress.Task
 import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.openapi.roots.ProjectRootManager
 
 /**
  * 创建 Feature 模块的 Action
@@ -19,13 +20,28 @@ class CreateFeatureAction : AnAction() {
     
     override fun actionPerformed(e: AnActionEvent) {
         val project = e.project ?: return
-        val selectedFile = e.getData(CommonDataKeys.VIRTUAL_FILE) ?: return
-        
-        // 确保选择的是目录
-        val targetDirectory = if (selectedFile.isDirectory) {
-            selectedFile
-        } else {
-            selectedFile.parent ?: return
+        val selectedFile = e.getData(CommonDataKeys.VIRTUAL_FILE)
+
+        // 如果没有选择文件，使用项目根目录
+        val targetDirectory = when {
+            selectedFile == null -> {
+                // 尝试多种方式获取项目根目录
+                val projectRootManager = ProjectRootManager.getInstance(project)
+                val contentRoots = projectRootManager.contentRoots
+
+                project.projectFile?.parent
+                    ?: project.workspaceFile?.parent
+                    ?: contentRoots.firstOrNull()
+                    ?: run {
+                        Messages.showErrorDialog(project, "无法获取项目根目录", "错误")
+                        return
+                    }
+            }
+            selectedFile.isDirectory -> selectedFile
+            else -> selectedFile.parent ?: run {
+                Messages.showErrorDialog(project, "无法确定目标目录", "错误")
+                return
+            }
         }
         
         // 显示 Feature 名称输入对话框
@@ -128,15 +144,18 @@ class CreateFeatureAction : AnAction() {
     override fun update(e: AnActionEvent) {
         val project = e.project
         val selectedFile = e.getData(CommonDataKeys.VIRTUAL_FILE)
-        
-        // 只有在项目存在且选择了文件/目录时才启用
-        e.presentation.isEnabledAndVisible = project != null && selectedFile != null
-        
+
+        // 只要项目存在就显示和启用菜单项
+        e.presentation.isVisible = project != null
+        e.presentation.isEnabled = project != null
+
         // 更新显示文本
         if (selectedFile?.isDirectory == true) {
             e.presentation.text = "创建 Feature 模块"
-        } else {
+        } else if (selectedFile != null) {
             e.presentation.text = "在此处创建 Feature 模块"
+        } else {
+            e.presentation.text = "创建 Feature 模块"
         }
     }
 }
