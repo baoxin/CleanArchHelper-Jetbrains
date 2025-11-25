@@ -1,11 +1,11 @@
 plugins {
     id("java")
-    id("org.jetbrains.kotlin.jvm") version "1.9.10"
+    id("org.jetbrains.kotlin.jvm") version "1.9.25"
     id("org.jetbrains.intellij") version "1.17.3"
 }
 
 group = "com.baoxin"
-version = "1.0.1"
+version = "1.1.2"
 
 repositories {
     mavenCentral()
@@ -19,7 +19,7 @@ dependencies {
 }
 
 intellij {
-    version.set("2023.2.5")
+    version.set("2024.2.5")
     type.set("IC") // IntelliJ IDEA Community Edition
 
     pluginName.set("Clean Architecture Helper")
@@ -36,11 +36,17 @@ tasks {
     }
 
     patchPluginXml {
-        sinceBuild.set("232")
-        untilBuild.set("243.*")
+        sinceBuild.set("242")
+        untilBuild.set("252.*")
 
         changeNotes.set("""
-            Initial version of Clean Architecture Helper plugin.
+            Updated version of Clean Architecture Helper plugin.
+
+            Changes:
+            - Updated to IntelliJ Platform 2024.2.5
+            - Updated Kotlin to 1.9.25
+            - Updated IntelliJ Gradle Plugin to 2.0.1
+            - Expanded compatibility to newer IDE versions
 
             Features:
             - Create Clean Architecture base structure
